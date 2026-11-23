@@ -90,7 +90,11 @@ route('POST', '/api/login', false, ({ body }) => {
   if (!u || !checkPw(str(body.password), u.password)) throw new HttpError(401, 'Incorrect email or password.');
   return { token: sign(u.id), user: pub(u) };
 });
-route('GET', '/api/me', true, ({ uid }) => ({ user: pub(db.users.find(u => u.id === uid)) }));
+route('GET', '/api/me', true, ({ uid }) => {
+  const user = db.users.find(u => u.id === uid);
+  if (!user) throw new HttpError(401, 'Please log in again.');
+  return { user: pub(user) };
+});
 
 route('POST', '/api/extract', true, async ({ uid, body }) => {
   const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(str(body.image));
@@ -103,7 +107,8 @@ route('POST', '/api/extract', true, async ({ uid, body }) => {
   return { prescriptionId: id, medicines };
 });
 
-// Date-only values are calendar dates in India; keep them timezone-neutral (UTC midnight).\nconst parseDay = d => new Date(`${d}T00:00:00.000Z`);
+// Date-only values are calendar dates in India; keep them timezone-neutral (UTC midnight).
+const parseDay = d => new Date(`${d}T00:00:00.000Z`);
 function cleanMed(m, uid, i, extra = {}) {
   const med = { id: crypto.randomUUID(), userId: uid, name: str(m.name), strength: str(m.strength), dose: str(m.dose), frequency: str(m.frequency), timing: str(m.timing), instructions: str(m.instructions), durationDays: Number(m.durationDays), ...extra };
   if (!med.name || /^unknown$/i.test(med.name)) throw new HttpError(400, `Medicine ${i + 1}: enter the medicine name.`);
