@@ -17,7 +17,24 @@ const dbFile = path.join(process.env.DATA_DIR || path.join(root, 'server', 'data
 fs.mkdirSync(path.dirname(dbFile), { recursive: true });
 let db = { users: [], prescriptions: [], medications: [], doses: [], caregiverRelationships: [] };
 try { db = { ...db, ...JSON.parse(fs.readFileSync(dbFile, 'utf8')) }; } catch {}
-const save = () => { fs.writeFileSync(dbFile + '.tmp', JSON.stringify(db)); fs.renameSync(dbFile + '.tmp', dbFile); };\n\n// One-time migration: previous Render schedules were created using the server's UTC wall clock.\n// Subtract 5h30 so 08:00Z becomes the intended 08:00 IST instant (02:30Z).\n// Keep takenAt untouched. A pre-migration copy is retained beside db.json.\nconst IST_MIGRATION = 'scheduledAt-utc-to-ist-v1';\nif (!(db.timezoneMigrations || []).includes(IST_MIGRATION)) {\n  if (fs.existsSync(dbFile) && !fs.existsSync(dbFile + '.pre-ist-migration')) {\n    fs.copyFileSync(dbFile, dbFile + '.pre-ist-migration');\n  }\n  db.doses = (db.doses || []).map(d => {\n    const stamp = Date.parse(d.scheduledAt);\n    return Number.isFinite(stamp) ? { ...d, scheduledAt: new Date(stamp - 330 * 60000).toISOString() } : d;\n  });\n  db.timezoneMigrations = [...(db.timezoneMigrations || []), IST_MIGRATION];\n  save();\n  console.log('Applied one-time Asia/Kolkata schedule migration; takenAt history preserved.');\n}
+const save = () => { fs.writeFileSync(dbFile + '.tmp', JSON.stringify(db)); fs.renameSync(dbFile + '.tmp', dbFile); };
+
+// One-time migration: previous Render schedules were created using the server's UTC wall clock.
+// Subtract 5h30 so 08:00Z becomes the intended 08:00 IST instant (02:30Z).
+// Keep takenAt untouched. A pre-migration copy is retained beside db.json.
+const IST_MIGRATION = 'scheduledAt-utc-to-ist-v1';
+if (!(db.timezoneMigrations || []).includes(IST_MIGRATION)) {
+  if (fs.existsSync(dbFile) && !fs.existsSync(dbFile + '.pre-ist-migration')) {
+    fs.copyFileSync(dbFile, dbFile + '.pre-ist-migration');
+  }
+  db.doses = (db.doses || []).map(d => {
+    const stamp = Date.parse(d.scheduledAt);
+    return Number.isFinite(stamp) ? { ...d, scheduledAt: new Date(stamp - 330 * 60000).toISOString() } : d;
+  });
+  db.timezoneMigrations = [...(db.timezoneMigrations || []), IST_MIGRATION];
+  save();
+  console.log('Applied one-time Asia/Kolkata schedule migration; takenAt history preserved.');
+}
 
 // ---- auth: scrypt password hashes + HMAC-signed tokens ----
 const hash = (pw, salt = crypto.randomBytes(16).toString('hex')) => `${salt}:${crypto.scryptSync(pw, salt, 64).toString('hex')}`;
