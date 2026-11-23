@@ -26,7 +26,7 @@ Prescription photo → Google Gemini extraction → **you verify/edit** → medi
 
 ## Notes and limitations
 - Reminders only fire while the app page is open in a browser tab (no paid push service). Some mobile browsers block the Notification API; the in-app banner still appears.
-- Times use the server's local time zone — fine for a local demo.
+- Schedule generation, date grouping and dashboard display use the `Asia/Kolkata` time zone explicitly; they do not depend on Render's server timezone. Existing UTC-generated schedules are migrated once at server startup, with a pre-migration database backup retained as `db.json.pre-ist-migration`.
 - Gemini key stays on the server (`server/index.js`); the browser never sees it. Data: `server/data/db.json`; images: `server/uploads/` (both git-ignored, no cloud storage).
 - Free-tier Gemini requests may be used by Google to improve its products — use sample prescriptions for demos.
 - Gemini model IDs change. If extraction fails, copy a current Flash model ID from AI Studio into `GEMINI_MODEL`.

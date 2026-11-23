@@ -17,7 +17,7 @@ const dbFile = path.join(process.env.DATA_DIR || path.join(root, 'server', 'data
 fs.mkdirSync(path.dirname(dbFile), { recursive: true });
 let db = { users: [], prescriptions: [], medications: [], doses: [], caregiverRelationships: [] };
 try { db = { ...db, ...JSON.parse(fs.readFileSync(dbFile, 'utf8')) }; } catch {}
-const save = () => { fs.writeFileSync(dbFile + '.tmp', JSON.stringify(db)); fs.renameSync(dbFile + '.tmp', dbFile); };
+const save = () => { fs.writeFileSync(dbFile + '.tmp', JSON.stringify(db)); fs.renameSync(dbFile + '.tmp', dbFile); };\n\n// One-time migration: previous Render schedules were created using the server's UTC wall clock.\n// Subtract 5h30 so 08:00Z becomes the intended 08:00 IST instant (02:30Z).\n// Keep takenAt untouched. A pre-migration copy is retained beside db.json.\nconst IST_MIGRATION = 'scheduledAt-utc-to-ist-v1';\nif (!(db.timezoneMigrations || []).includes(IST_MIGRATION)) {\n  if (fs.existsSync(dbFile) && !fs.existsSync(dbFile + '.pre-ist-migration')) {\n    fs.copyFileSync(dbFile, dbFile + '.pre-ist-migration');\n  }\n  db.doses = (db.doses || []).map(d => {\n    const stamp = Date.parse(d.scheduledAt);\n    return Number.isFinite(stamp) ? { ...d, scheduledAt: new Date(stamp - 330 * 60000).toISOString() } : d;\n  });\n  db.timezoneMigrations = [...(db.timezoneMigrations || []), IST_MIGRATION];\n  save();\n  console.log('Applied one-time Asia/Kolkata schedule migration; takenAt history preserved.');\n}
 
 // ---- auth: scrypt password hashes + HMAC-signed tokens ----
 const hash = (pw, salt = crypto.randomBytes(16).toString('hex')) => `${salt}:${crypto.scryptSync(pw, salt, 64).toString('hex')}`;
@@ -86,7 +86,7 @@ route('POST', '/api/extract', true, async ({ uid, body }) => {
   return { prescriptionId: id, medicines };
 });
 
-const parseDay = d => { const [y, m, n] = d.split('-').map(Number); return new Date(y, m - 1, n); };
+// Date-only values are calendar dates in India; keep them timezone-neutral (UTC midnight).\nconst parseDay = d => new Date(`${d}T00:00:00.000Z`);
 function cleanMed(m, uid, i, extra = {}) {
   const med = { id: crypto.randomUUID(), userId: uid, name: str(m.name), strength: str(m.strength), dose: str(m.dose), frequency: str(m.frequency), timing: str(m.timing), instructions: str(m.instructions), durationDays: Number(m.durationDays), ...extra };
   if (!med.name || /^unknown$/i.test(med.name)) throw new HttpError(400, `Medicine ${i + 1}: enter the medicine name.`);
