@@ -10,9 +10,9 @@ const dateParts = d => {
 export const dayKey = d => { const p = dateParts(d); return `${p.year}-${pad(p.month)}-${pad(p.day)}`; };
 const BASE = { 1: ['08:00'], 2: ['08:00', '20:00'], 3: ['08:00', '14:00', '20:00'], 4: ['08:00', '12:00', '16:00', '20:00'] };
 const SLOT = { morning: '08:00', afternoon: '14:00', evening: '18:00', night: '21:00' };
-const COUNTS = [[/\\b(four|4|qid|qds)\\b/i, 4], [/\\b(thrice|three|3|tds|tid)\\b/i, 3], [/\\b(twice|two|2|bd|bid)\\b/i, 2], [/\\b(once|one|1|od|qd|daily)\\b/i, 1]];
+const COUNTS = [[/\b(four|4|qid|qds)\b/i, 4], [/\b(thrice|three|3|tds|tid)\b/i, 3], [/\b(twice|two|2|bd|bid)\b/i, 2], [/\b(once|one|1|od|qd|daily)\b/i, 1]];
 export function timesFor(frequency = '', timing = '') {
-  const p = String(frequency).match(/(\\d)\\s*-\\s*(\\d)\\s*-\\s*(\\d)/);
+  const p = String(frequency).match(/(\d)\s*-\s*(\d)\s*-\s*(\d)/);
   if (p) { const t = [p[1] !== '0' && '08:00', p[2] !== '0' && '14:00', p[3] !== '0' && '20:00'].filter(Boolean); return t.length ? t : null; }
   const hit = COUNTS.find(([re]) => re.test(frequency));
   if (!hit) return null;
