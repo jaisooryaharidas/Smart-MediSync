@@ -117,7 +117,7 @@ function EditMed({ m, onDone }) {
   );
 }
 
-const todayStr = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
+const todayStr = () => { const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()); const v = Object.fromEntries(p.map(x => [x.type, x.value])); return `${v.year}-${v.month}-${v.day}`; };
 function ManualMed({ onDone }) {
   const [f, setF] = useState({ name: '', strength: '', dose: '', frequency: '', timing: '', startDate: todayStr(), durationDays: '', instructions: '' });
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
